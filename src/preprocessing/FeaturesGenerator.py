@@ -86,8 +86,8 @@ class FeaturesGenerator:
         features = PaperFeatures(paper.h_index, paper.stance_score)
         review_year = int(review_year)
         year_gap = int(review_year + config.review_end_range - int(paper.year))
-        if not 0 <= year_gap <= config.cochrane_search_range:
-            print(paper.pmid)
+#        if not 0 <= year_gap <= config.cochrane_search_range:
+#            print(paper.pmid)
 #        assert (0 <= year_gap <= config.cochrane_search_range)
         features.add_year_gap_feature(year_gap)
         citation_count = 0 if not paper.pm_cited else len(paper.pm_cited)
@@ -212,8 +212,7 @@ class FeaturesGenerator:
             reader = csv.DictReader(queries_csv)
             for row in reader:
                 examples, label = self.get_examples(config, long_dir, row, short_dir)
-                self.write_csv_file(output_dir, row['short query'], 1, examples, label,
-                                    fields = PaperFeatures.__annotations__.keys())
+                self.write_csv_file(output_dir, row['short query'], 1, examples, label, fields = fields)
 
 
     def generate_examples_by_pairs(self, output_dir, queries, long_dir, short_dir, config):
