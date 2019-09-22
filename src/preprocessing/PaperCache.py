@@ -2,7 +2,7 @@ import json
 import os
 from shutil import copyfile
 
-from Paper import Paper
+from preprocessing.Paper import Paper
 
 
 class PaperCache(object):
@@ -21,7 +21,7 @@ class PaperCache(object):
                 data = json.loads(cache_file.read())
                 for k, v in data.items():
                     self.cache[k] = \
-                        Paper(v['pmid'], v['title'], v['journal'], v['authors'], v['pm_cited'], v['h_index'], v['issn'])
+                        Paper(v['pmid'], v['title'], v['journal'], v['authors'], v['pm_cited'], v['h_index'], v['issn'], v['year'])
         except FileNotFoundError:
             return
 

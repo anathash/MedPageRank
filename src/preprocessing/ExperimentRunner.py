@@ -1,14 +1,13 @@
 import csv
-from collections import Counter
 
 from metapub import PubMedFetcher
 
-from HIndex import HIndex
-from PaperBuilder import PaperBuilder
-from PaperCache import PaperCache
-from Paper_Network import P_N
-import page_rank_alg as pr
-from pagerank_orig import orig_powerIteration
+from preprocessing.HIndex import HIndex
+from preprocessing.PaperBuilder import PaperBuilder
+from preprocessing.PaperCache import PaperCache
+from preprocessing.Paper_Network import P_N
+from preprocessing import page_rank_alg as pr
+from preprocessing.pagerank_orig import orig_powerIteration
 
 
 class ExperimentRunner:
@@ -29,13 +28,15 @@ class ExperimentRunner:
         self.papers_network = P_N(list(self.paper_info.keys()), paper_builder)
         for pmid, p in self.papers_network.csv_papers_dict.items():
             self.paper_info[pmid]['Journal hIndex'] = p.h_index
+            self.paper_info[pmid]['year'] = p.year
         self.rsp = rsp
 
     def label_data(self, turk_file):
         reader = csv.DictReader(open(turk_file))
         for row in reader:
             pmid = row['document_url'].split('/')[-1].split('\n')[0]
-            self.paper_info[pmid] = row
+            self.paper_info[pmid] = {'document_url' : row['document_url'].strip(),
+                                     'correct_label': row['correct_label'].strip()}
 
     def label_data_with_workers(self, turk_file):
         reader = csv.DictReader(open(turk_file))
@@ -92,30 +93,47 @@ class ExperimentRunner:
         self.write_avgs(csvfile, avg_ranks_worker, worker_fieldnames)
 
     def write_my_label_results(self, avg_ranks_me, csvfile):
-        my_field_names = ['setting', 'support', 'reject', 'neutral', 'irrelevant', 'undecided_label']
+        my_field_names = ['setting', 'support', 'reject', 'neutral', 'preliminary', 'irrelevant', 'undecided_label']
         csvfile.write('\n\nCORRECT LABEL AVERAGES\n ')
         self.write_avgs(csvfile, avg_ranks_me, my_field_names)
 
     def compute_avg_ranks(self, key, ranks, label_filed_name, labels):
-        counter = Counter(labels)
+        counter = {x:0 for x in labels}
         accumulator = {x:0 for x in labels}
         for pmid, paper in self.paper_info.items():
             rank = ranks[key][pmid]
             paper[key + '_rank'] = rank
             label = paper[label_filed_name]
             accumulator[label] += rank
-            counter.update(label)
-        return {x: accumulator[x] / counter[x] for x in accumulator.keys()}
+            counter[label] += 1
+        return {x: 0 if not counter[x] else accumulator[x] / counter[x] for x in accumulator.keys()}
 
+
+    def add_citation_info(self):
+        for pmid, p in self.papers_network.csv_papers_dict.items():
+            for i in range(0, 20):
+                str_i = str(i)
+                k = str_i + ' year cit'
+                if str_i in p.citations:
+                    self.paper_info[pmid][k] = p.citations[str_i][0]/p.citations[str_i][1]
+                else:
+                    self.paper_info[pmid][k] = 0
+            self.paper_info[pmid]['year'] = p.year
 
     def report_exp_results(self, ranks):
+        self.add_citation_info()
         avg_ranks_worker = None
         if self.workers:
             avg_ranks_worker = {key:self.compute_avg_ranks(key, ranks, 'label', ['support', 'not_support', 'irrelevant', 'undecided_label']) for key in ranks.keys()}
-        avg_ranks_me = {key: self.compute_avg_ranks(key, ranks, 'correct_label', ['support', 'reject', 'neutral', 'irrelevant', 'undecided_label']) for key in ranks.keys()}
+        avg_ranks_me = {key: self.compute_avg_ranks(key, ranks, 'correct_label', ['support', 'reject', 'neutral', 'preliminary', 'irrelevant', 'undecided_label']) for key in ranks.keys()}
         papers_res = list(self.paper_info.values())
         self.write_results_to_file(avg_ranks_worker, avg_ranks_me, papers_res)
 
+    def print_citing_info(self):
+        for pmid in self.papers_network.csv_papers_dict.keys():
+            for paper in self.papers_network.csv_papers_dict.values():
+                if paper.pm_cited and pmid in paper.pm_cited:
+                    print (pmid + ' cited ' + paper.pmid)
 
     def run_experiment(self, recursion_degree, use_h_index):
         self.papers_network.rest_network()
@@ -151,22 +169,23 @@ class ExperimentRunner:
     def run_experiments(self, recursion_degs):
         results = {'CIT_COUNT': self.citation_counts(), 'H INDEX:': self.h_index_count()}
         for rec_deg in recursion_degs:
-            for use_h_index in [True, False]:
+            for use_h_index in [True]:  #TODO: if adding flase fix citation info construction bug
                 key = 'REC_DEG_' + str(rec_deg) + 'HIndex_' + str(use_h_index)
                 results[key] = self.run_experiment(rec_deg, use_h_index)
-        self.report_exp_results(results)
+        self. report_exp_results(results)
 
 
 def main():
-    exp_runner = ExperimentRunner('../resources/cinnamon/cinnamon.json',
+    exp_runner = ExperimentRunner('../resources/cinnamon/cinnamon3__.json',
                                   "../resources/scimagojr 2018.csv",
-                                  'C:/research/falseMedicalClaims/turk/cinnamon/no_index_ten_years.csv',
-                                  'C:/research/falseMedicalClaims/turk/cinnamon/result_analysis_10_years.csv',
+                                  'C:/research/falseMedicalClaims/turk/cinnamon/no_index.csv',
+                                  'C:/research/falseMedicalClaims/turk/cinnamon/clinical_trials.csv',
                                   1.5,
-                                  'C:/research/falseMedicalClaims/turk/cinnamon/cinnamon_rsp_0.31_10years.csv',
+                                  'C:/research/falseMedicalClaims/turk/cinnamon/clinical_trials_res.csv',
                                   False,
                                   0.31)
-    exp_runner.run_experiments([2, 3])
+#    exp_runner.print_citing_info()
+    exp_runner.run_experiments([2])
 
 if __name__ == '__main__':
     main()

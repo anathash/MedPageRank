@@ -1,13 +1,8 @@
 import sys
 from time import sleep
 
-import pandas
-
-from metapub import PubMedFetcher
-import pandas as pd
-
-import PaperCache
-from Paper import Paper
+from preprocessing import PaperCache
+from preprocessing.Paper import Paper
 
 H_INDEX_CSV = "scimagojr 2018.csv"
 SHORTCUT_JOURNALS_CSV = "jlist.csv"
@@ -42,9 +37,15 @@ class PaperBuilder:
                 paper.h_index = self.get_h_index(paper.issn, paper.journal)
                 if paper.h_index > 1:
                     self.paper_cache.add_paper(paper.pmid, paper)
+        #hack fix because of the cache
+            if paper.pm_cited == None:
+                paper.pm_cited = []
         return paper
 
     def get_article_from_pubmed(self, pmid):
+        if not pmid:
+            print('ssss')
+            return
         article = None
         while not article:
             try:
@@ -57,9 +58,13 @@ class PaperBuilder:
     def get_article_citations(self, pmid):
         # pm_cited - which papers cited current paper
         try:
-            return self.fetch.related_pmids(pmid)['citedin']
+            paper = self.fetch.related_pmids(pmid)
+            if 'citedin' not in paper:
+                return []
+            return paper['citedin']
         except:
-            return None
+            sys.stderr.write('error retrieving related for pubmed id ' + pmid + '/n')
+            return []
 
     def update_cache(self, paper):
         self.paper_cache.add_paper(paper.pmid, paper)
@@ -74,10 +79,11 @@ class PaperBuilder:
         if paper:
             return paper
         article = self.get_article_from_pubmed(pmid)
+        if not article.year:
+            return None
         pm_cited = self.get_article_citations(pmid)
         h_index = self.get_h_index(article.issn, article.journal)
-
-        paper = Paper(pmid, article.title, article.journal, article.authors, pm_cited, h_index, article.issn)
+        paper = Paper(pmid, article.title, article.journal, article.authors, pm_cited, h_index, article.issn, int(article.year))
         self.update_cache(paper)
         return paper
 

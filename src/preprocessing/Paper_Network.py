@@ -1,7 +1,6 @@
-import csv
 import collections
 
-import PaperBuilder
+from preprocessing import PaperBuilder
 
 
 class P_N(object):
@@ -14,7 +13,7 @@ class P_N(object):
 
 
     def rest_network(self):
-        self.papers_dict = self.csv_papers_dict
+        self.papers_dict = self.csv_papers_dict.copy()
 
 
     def read_paper_info(self, pmids):
@@ -42,16 +41,31 @@ class P_N(object):
         print('recursion degree = ' + str(k))
         original_paper = self.papers_dict[paper_pmid]
         if original_paper == None or original_paper.pm_cited == None: return
-        print('paper ' + original_paper.pmid + ' has ' + str(len(original_paper.pm_cited))+ ' citations')
-        for new_paper_pmid in original_paper.pm_cited:
-            if new_paper_pmid not in self.papers_dict:
-                citing_paper = self.paper_builder.build_paper(new_paper_pmid)
-                self.papers_dict[new_paper_pmid] = citing_paper
+        print('paper ' + original_paper.pmid + ' has ' + str(len(original_paper.pm_cited)) + ' citations')
+        for citing_paper_pmid in original_paper.pm_cited:
+            citing_paper = self.paper_builder.build_paper(citing_paper_pmid)
+            if citing_paper_pmid not in self.papers_dict and citing_paper_pmid not in self.csv_papers_dict:
+                self.papers_dict[citing_paper_pmid] = citing_paper
+                self.recursion_search_citations(citing_paper.pmid, k - 1)
             else:
-                citing_paper = self.papers_dict[new_paper_pmid]
+                citing_paper = self.papers_dict[citing_paper_pmid]
+            #add citation info
+            citation_year_gap = str(int(citing_paper.year) - int(original_paper.year))
+            if citation_year_gap in original_paper.citations:
+                (sum, count) = original_paper.citations[citation_year_gap]
+                original_paper.citations[citation_year_gap] = (sum + citing_paper.h_index, count +1)
+            else:
+                original_paper.citations[citation_year_gap]=(citing_paper.h_index, 1)
             citing_paper.add_to_pm_cite(paper_pmid)
+        citation_weighted_avg = 0
+        gap_sum = 0
+        for year_gap, (sum, counter) in original_paper.citations.items():
+            weight = 20 - int(year_gap)
+            citation_weighted_avg += weight * (sum/counter)
+            gap_sum += weight
+        original_paper.citation_weighted_avg = citation_weighted_avg/gap_sum
 
-            self.recursion_search_citations(citing_paper.pmid, k - 1)
+
 
     def get_network_edges_weights(self):
         edgeWeights = collections.defaultdict(lambda: collections.Counter())

@@ -3,7 +3,8 @@ import pandas
 
 import pandas as pd
 ISSN_TO_ISSNL = 'C:\\research\\falseMedicalClaims\\issnltables\\20190625.ISSN-to-ISSN-L.TXT'
-ISSNL_TO_ISSNL = 'C:\\research\\falseMedicalClaims\\issnltables\\20190625.ISSN-L-to-ISSN1.TXT'
+ISSNL_TO_ISSN = 'C:\\research\\falseMedicalClaims\\issnltables\\20190625.ISSN-L-to-ISSN1.csv'
+
 class HIndex:
     def __init__(self, filename):
         self.h_index = {}
@@ -17,13 +18,38 @@ class HIndex:
             for issn in issn_list:
                 formated_issn = self.format_issn(issn)
                 self.h_index[formated_issn] = h_index
-        #        self.issn_to_issnl = pd.read_csv(ISSN_TO_ISSNL, delimiter='\t', error_bad_lines=True)
-        #        self.issn_to_issnl.astype('str')
-        #        self.issnl_to_issn = pd.read_csv(ISSNL_TO_ISSNL, delimiter='\t', error_bad_lines=True)
-        #        self.issnl_to_issn.set_index('ISSN-L')
+   #     self.add_issnl()
+        self.issn_to_issnl = pd.read_csv(ISSN_TO_ISSNL, delimiter='\t', error_bad_lines=True)
+        self.table = {}
+#        with open(ISSNL_TO_ISSN , encoding='utf-8', newline='') as csvfile:
+#            reader = csv.DictReader(csvfile)
+#            fieldnames = reader.fieldnames
+#            for row in reader:
+#                for field in fieldnames:
+#                    self.table[field] = row[field]
+#        self.issn_to_issnl = pd.DataFrame.from_dict(self.table, index=[0])
+        self.issnl_to_issn = pd.read_csv(ISSNL_TO_ISSN, delimiter=',', error_bad_lines=True)
+#        print(self.issnl_to_issn )
+
+
 
     def add_issnl(self):
         linking_table = pd.read_csv(ISSN_TO_ISSNL, delimiter='\t', error_bad_lines=True)
+        for index, row in linking_table.iterrows():
+            issnl = row['ISSN-L']
+            issn = row['ISSN']
+            if issn != issnl:
+                if issn in self.h_index:
+                    if issnl in self.h_index:
+                        assert(self.h_index[issnl] == self.h_index[issnl])
+                    else:
+                        self.h_index[issnl] = self.h_index[issn]
+                else:
+                    if issnl in self.h_index:
+                        self.h_index[issn] = self.h_index[issnl]
+
+    def add_issnl_to_issn(self):
+        linking_table = pd.read_csv(ISSNL_TO_ISSN, delimiter='\t', error_bad_lines=True)
         for index, row in linking_table.iterrows():
             issnl = row['ISSN-L']
             issn = row['ISSN']
@@ -48,41 +74,42 @@ class HIndex:
     def get_hIndex_by_issnl(self, issnl):
         print('issnl ' + issnl + ' not found. Looking in issn-l table')
         #issnl_df = self.issnl_to_issn.loc[self.issn_to_issnl['ISSN-L'] == issnl]
-        issnl_df = self.issnl_to_issn['ISSN-L'].where(self.issn_to_issnl['ISSN-L'] == issnl)
+        #issnl_df = self.issnl_to_issn['ISSN-L'].where(self.issn_to_issnl['ISSN-L'] == issnl)
+        issnl_df = self.issnl_to_issn.loc[self.issn_to_issnl['ISSN-L'] == issnl]
         if issnl_df.empty:
             print('no issnl for  ' + issnl)
             return 0
-        print(issnl_df)
+#        print(issnl_df)
         for i in range(1, 68):
             issn = issnl_df.iloc[0]['ISSN'+str(i)]
             if not issn:
                 return 0
             if issn in self.h_index:
                 print('found hIndex by Issnl')
-                return self.h_index[issnl]
+                return self.h_index[issn]
 
-        print('issn ' + issn + ' not found by issnl ' + issnl)
+        print('issn ' + str(issn) + ' not found by issnl ' + str(issnl))
         return 0
 
-    def get_H_index1(self, issn):
+    def get_H_index(self, issn):
         if not issn:
             return 0
-        if issn == '2213-8595':
+        if issn == '2046-4207':
             print('stop')
         if issn in self.h_index:
             return self.h_index[issn]
         h_index = self.get_hIndex_by_issn(issn)
         if h_index ==0:
             return  self.get_hIndex_by_issnl(issn)
-        return 0
+        return h_index
 
-    def get_H_index(self, issn):
+    def get_H_index1(self, issn):
         return self.h_index[issn] if issn and issn in self.h_index else 0
 
     def get_hIndex_by_issn(self, issn):
         print('issn ' + issn + ' not found. Looking in issn-l table')
         issnl_df = self.issn_to_issnl.loc[self.issn_to_issnl['ISSN'] == issn]
-        print(issnl_df)
+        #print(issnl_df)
         if issnl_df.empty:
             print('no issnl for  ' + issn)
             return 0
