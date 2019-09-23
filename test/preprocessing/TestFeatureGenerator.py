@@ -98,10 +98,13 @@ class TestFeatureGenerator(unittest.TestCase):
                 for line in actual_lines:
                     self.assertTrue(line in expected_lines)
 
-    def test_generate_examples_by_single_remove_stance_exclude_ir(self):
-        actual_dir = '../resources/output/single_remove_stance_exclude_ir/actual/'
+    def setup_actual_dir(self, actual_dir):
         if os.path.exists(actual_dir):
             shutil.rmtree(actual_dir)
+
+    def test_generate_examples_by_single_remove_stance_exclude_ir(self):
+        actual_dir = '../resources/output/single_remove_stance_exclude_ir/actual/'
+        self.setup_actual_dir(actual_dir)
 
         config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=2,
                                           review_end_range=1, group_size=5, cochrane_search_range=2,
@@ -109,6 +112,43 @@ class TestFeatureGenerator(unittest.TestCase):
         fg = self.setup_feature_generator()
         fg.generate_examples_by_single(actual_dir, '../resources/queries.csv', '', '../resources/examples/', config)
         expected_dir = '../resources/output/single_remove_stance_exclude_ir/expected/'
+        self.compare_files(actual_dir,expected_dir)
+
+    def test_generate_examples_by_single_include_stance_exclude_ir(self):
+        actual_dir = '../resources/output/single_include_stance_exclude_ir/actual/'
+        self.setup_actual_dir(actual_dir)
+
+        config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=2,
+                                          review_end_range=1, group_size=5, cochrane_search_range=2,
+                                          remove_stance=False)
+        fg = self.setup_feature_generator()
+        fg.generate_examples_by_single(actual_dir, '../resources/queries.csv', '', '../resources/examples/', config)
+        expected_dir = '../resources/output/single_include_stance_exclude_ir/expected/'
+        self.compare_files(actual_dir,expected_dir)
+
+
+    def test_generate_examples_by_pairs_include_stance_exclude_ir(self):
+        actual_dir = '../resources/output/pairs_include_stance_exclude_ir/actual/'
+        self.setup_actual_dir(actual_dir)
+
+        config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=2,
+                                          review_end_range=1, group_size=5, cochrane_search_range=2,
+                                          remove_stance=False)
+        fg = self.setup_feature_generator()
+        fg.generate_examples_by_pairs(actual_dir, '../resources/queries.csv', '', '../resources/examples/', config)
+        expected_dir = '../resources/output/pairs_include_stance_exclude_ir/expected/'
+        self.compare_files(actual_dir,expected_dir)
+
+    def test_generate_examples_by_pairs_exclude_stance_exclude_ir(self):
+        actual_dir = '../resources/output/pairs_exclude_stance_exclude_ir/actual/'
+        self.setup_actual_dir(actual_dir)
+
+        config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=2,
+                                          review_end_range=1, group_size=5, cochrane_search_range=2,
+                                          remove_stance=True)
+        fg = self.setup_feature_generator()
+        fg.generate_examples_by_pairs(actual_dir, '../resources/queries.csv', '', '../resources/examples/', config)
+        expected_dir = '../resources/output/pairs_exclude_stance_exclude_ir/expected/'
         self.compare_files(actual_dir,expected_dir)
 
 

@@ -233,7 +233,7 @@ class FeaturesGenerator:
                 self.write_pairs_csv_file(output_dir, row['short query'],  examples, fields, get_diff, get_attr)
             get_diff = lambda x: math.fabs(x[0].stance_score - int(x[1]))
             get_attr = lambda p: p[0].__dict__
-            self.write_pairs_csv_file(output_dir, row['short query'], all_examples, fields, get_diff, get_attr)
+            self.write_pairs_csv_file(output_dir, 'all', all_examples, fields, get_diff, get_attr)
 
     def generate_examples(self, output_dir, queries, long_dir, short_dir, config):
         self.setup_dir(output_dir, long_dir, short_dir, config)
