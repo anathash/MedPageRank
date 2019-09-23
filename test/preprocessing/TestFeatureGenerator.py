@@ -151,7 +151,29 @@ class TestFeatureGenerator(unittest.TestCase):
         expected_dir = '../resources/output/pairs_exclude_stance_exclude_ir/expected/'
         self.compare_files(actual_dir,expected_dir)
 
+    def test_generate_examples_by_group_exclude_ir(self):
+        actual_dir = '../resources/output/group_exclude_ir/actual/'
+        self.setup_actual_dir(actual_dir)
 
+        config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=2,
+                                          review_end_range=1, group_size=3, cochrane_search_range=2,
+                                          remove_stance=True)
+        fg = self.setup_feature_generator()
+        fg.generate_examples(actual_dir, '../resources/queries.csv', '', '../resources/examples/', config)
+        expected_dir = '../resources/output/group_exclude_ir/expected/'
+        self.compare_files(actual_dir, expected_dir)
+
+    def test_generate_examples_by_group_include_ir(self):
+        actual_dir = '../resources/output/group_include_ir/actual/'
+        self.setup_actual_dir(actual_dir)
+
+        config = FeaturesGenerationConfig(include_irrelevant=True, examples_per_file=20, review_start_range=2,
+                                          review_end_range=1, group_size=3, cochrane_search_range=2,
+                                          remove_stance=True)
+        fg = self.setup_feature_generator()
+        fg.generate_examples(actual_dir, '../resources/queries.csv', '', '../resources/examples/', config)
+        expected_dir = '../resources/output/group_include_ir/expected/'
+        self.compare_files(actual_dir, expected_dir)
 
 if __name__ == '__main__':
     unittest.main()
