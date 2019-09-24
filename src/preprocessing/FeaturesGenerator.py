@@ -178,6 +178,8 @@ class FeaturesGenerator:
     def write_pairs_csv_file(self, output_dir, query, examples, fields, get_diff, get_attr):
         pairs = permutations(examples, 2)
         fieldnames = ['label']
+        if query == 'all':
+            fieldnames.extend(['query1','query2'])
         for i in range(0, 2):
             for field in fields:
                 fieldnames.append(field + str(i + 1))
@@ -195,7 +197,10 @@ class FeaturesGenerator:
                     pref = 1
                 else:
                     pref = 2
-                row = {'label' : pref}
+                if query == 'all':
+                    row = {'label': pref, 'query1': pair[0][2], 'query2':pair[1][2]}
+                else:
+                    row = {'label': pref}
                 for i in range(0, 2):
                     attr = get_attr(pair[i])#pair[i][0].__dict__
                     for field in fields:
@@ -226,7 +231,7 @@ class FeaturesGenerator:
             reader = csv.DictReader(queries_csv)
             for row in reader:
                 examples, label = self.get_examples(config, long_dir, row, short_dir)
-                all_examples.extend([(e, label) for e in examples])
+                all_examples.extend([(e, label, row['short query']) for e in examples])
                 #output_dir, query, examples, fields, get_diff, get_attr
                 get_diff = lambda x: math.fabs(x.stance_score - int(label))
                 get_attr = lambda p: p.__dict__
@@ -324,6 +329,38 @@ class FeaturesGenerationConfig:
         self.cochrane_search_range = cochrane_search_range
         self.remove_stance = remove_stance
 
+def gen_all(fg):
+
+    # fg = FeaturesGenerator('../resources/fg_cache3.json', '../resources/scimagojr 2018.csv','../resources/fg_noindex.json')
+
+    output_dir = 'C:\\research\\falseMedicalClaims\\examples\\model input\\pubmed\\'
+    queries = 'C:\\research\\falseMedicalClaims\\examples\\model input\\pubmed\\queries.csv'
+    short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\classified\\'
+
+    config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
+                                      review_end_range=1, group_size=5, cochrane_search_range=15, remove_stance=True)
+    fg.generate_examples(output_dir + 'group1\\', queries, '', short_dir, config)
+    config.include_irrelevant = True
+    fg.generate_examples(output_dir + 'group2\\', queries, '', short_dir, config)
+    config.include_irrelevant = False
+    config.group_size = 3
+    fg.generate_examples(output_dir + 'group3\\', queries, '', short_dir, config)
+    config.include_irrelevant = True
+    fg.generate_examples(output_dir + 'group4\\', queries, '', short_dir, config)
+
+    config.remove_stance = True
+    fg.generate_examples_by_pairs(output_dir + 'group5\\', queries, '', short_dir, config)
+    config.remove_stance = False
+    fg.generate_examples_by_pairs(output_dir + 'group6\\', queries, '', short_dir, config)
+
+def gen_one(fg):
+    output_dir = 'C:\\research\\falseMedicalClaims\\examples\\model input\\pubmed\\'
+    queries = 'C:\\research\\falseMedicalClaims\\examples\\model input\\pubmed\\queries.csv'
+    short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\classified\\'
+
+    config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
+                                      review_end_range=1, group_size=5, cochrane_search_range=15, remove_stance=True)
+    fg.generate_examples(output_dir + 'group11\\', queries, '', short_dir, config)
 
 def main():
     include_irrelevant = [True, False]
@@ -331,23 +368,15 @@ def main():
     review_start_range =[10,15]
     review_end_range = [1,5,10]
     group_size = [1,3,5]
-    config = FeaturesGenerationConfig(include_irrelevant=False,examples_per_file=20,review_start_range=15,
-                                      review_end_range=1,group_size=5, cochrane_search_range=15, remove_stance=True)
 
     paper_cache = PaperCache('../resources/fg_cache3.json')
     hIndex = HIndex('../resources/scimagojr 2018.csv')
     fetcher = PubMedFetcher(email='anat.hashavit@gmail.com')
     paper_builder = PaperBuilder(hIndex, paper_cache, fetcher, '../resources/fg_noindex.json')
     fg = FeaturesGenerator(paper_builder)
-    #fg = FeaturesGenerator('../resources/fg_cache3.json', '../resources/scimagojr 2018.csv','../resources/fg_noindex.json')
-
-    output_dir = 'C:\\research\\falseMedicalClaims\\examples\\model input\\pubmed\\'
-    queries = 'C:\\research\\falseMedicalClaims\\examples\\model input\\pubmed\\queries.csv'
-    short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\classified\\'
-
-    #fg.generate_examples_by_single(output_dir+'group1\\',queries,'',short_dir, config)
-    #fg.generate_examples_by_pairs(output_dir+'group2\\', queries, '', short_dir, config)
-    fg.generate_examples(output_dir+'group4\\', queries, '', short_dir, config)
+    gen_one(fg)
+    #fg.generate_examples(output_dir + 'group4\\', queries, '', short_dir, config)
+#    fg.generate_examples_by_single(output_dir+'group1\\',queries,'',short_dir, config)
 
 
 if __name__ == '__main__':
