@@ -20,11 +20,10 @@ class PaperBuilder:
             return 1
         #issn = '' if not issn else issn.replace('-', '')
         h_index = self.hIndex.get_H_index(issn)
-        if h_index == 0:
-            print('No HIndex for journal ' + journal + ' with ISSN ' + issn)
-            with open( self.no_index_filename, 'a') as file:
-                file.write(journal+',' + issn + ' \n')
-        h_index += 1
+        #if h_index == 0:
+        #    with open( self.no_index_filename, 'a') as file:
+        #        file.write(journal+',' + issn + ' \n')
+        #h_index += 1
         return h_index
 
     def get_paper_from_cache(self, pmid):
@@ -34,6 +33,7 @@ class PaperBuilder:
                 return paper
             # retry to get hIndex
             if paper.h_index == 1:
+                print('No HIndex for journal ' + paper.journal + ' with ISSN ' + paper.issn)
                 paper.h_index = self.get_h_index(paper.issn, paper.journal)
                 if paper.h_index > 1:
                     self.paper_cache.add_paper(paper.pmid, paper)

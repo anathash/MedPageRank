@@ -4,7 +4,7 @@ import pandas
 import pandas as pd
 ISSN_TO_ISSNL = 'C:\\research\\falseMedicalClaims\\issnltables\\20190625.ISSN-to-ISSN-L.TXT'
 ISSNL_TO_ISSN = 'C:\\research\\falseMedicalClaims\\issnltables\\20190625.ISSN-L-to-ISSN1.csv'
-
+APPENDIX = 'C:\\Users\\User\\PycharmProjects\\MedPageRank\\resources\\scimagojr 2018 appendix.csv'
 class HIndex:
     def __init__(self, filename):
         self.h_index = {}
@@ -29,6 +29,11 @@ class HIndex:
 #                    self.table[field] = row[field]
 #        self.issn_to_issnl = pd.DataFrame.from_dict(self.table, index=[0])
         self.issnl_to_issn = pd.read_csv(ISSNL_TO_ISSN, delimiter=',', error_bad_lines=True)
+        with open(APPENDIX, encoding='utf-8', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+               # formatted_issn = self.format_issn(row['issn'])
+                self.h_index[row['issn']] = int(row['hindex'])
 #        print(self.issnl_to_issn )
 
 
@@ -100,7 +105,7 @@ class HIndex:
             return self.h_index[issn]
         h_index = self.get_hIndex_by_issn(issn)
         if h_index ==0:
-            return  self.get_hIndex_by_issnl(issn)
+            return self.get_hIndex_by_issnl(issn)
         return h_index
 
     def get_H_index1(self, issn):
