@@ -33,7 +33,7 @@ class PaperBuilder:
                 return paper
             # retry to get hIndex
             if paper.h_index == 1:
-                print('No HIndex for journal ' + paper.journal + ' with ISSN ' + paper.issn)
+                print('No HIndex for journal ' + str(paper.journal) + ' with ISSN ' + str(paper.issn))
                 paper.h_index = self.get_h_index(paper.issn, paper.journal)
                 if paper.h_index > 1:
                     self.paper_cache.add_paper(paper.pmid, paper)

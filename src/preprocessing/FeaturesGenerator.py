@@ -142,11 +142,12 @@ class FeaturesGenerator:
         return features
 
 
-    def generate_features(self, files, review_year, config):
+    def generate_features(self, files, review_year, config, coch_pubmed_url):
         featured_papers = []
         papers = {}
         num_ir = 0
         rel = 0
+        label = -1
         for file in files:
             if not file.endswith('.csv'):
                 filename = file.strip() + '.csv'
@@ -160,11 +161,15 @@ class FeaturesGenerator:
                     url = row['document_url']
                     if not url:
                         continue
-                    score = row['numeric']
+                    if url == coch_pubmed_url:
+                        label = int(row['category'])
+                        continue
+                    score = row['category']
                     if score:
                         score = int(score)
-                        if score == -1:
+                        if score < 0:
                             num_ir += 1
+                            continue
                         else:
                             rel += 1
                     pmid = row['document_url'].split('/')[-1].split('\n')[0]
@@ -182,16 +187,16 @@ class FeaturesGenerator:
   #          if examples_collected == config.examples_per_file:
   #              break
         if config.rel == "rel":
-            return featured_papers, rel
+            return label, featured_papers, rel
         else:
-            return featured_papers, num_ir
+            return label, featured_papers, num_ir
 
-    def generate_examples_per_query(self, files, review_year, config):
-        featured_papers, rel = self.generate_features(files, review_year, config)
-        if config.perm:
-            return permutations(featured_papers, config.group_size), rel
-        else:
-            return featured_papers, rel
+    def generate_examples_per_query(self, files, review_year, config, coch_pubmed_url):
+        return self.generate_features(files, review_year, config, coch_pubmed_url)
+      #  if config.perm:
+      #     return permutations(featured_papers, config.group_size), rel
+      #  else:
+      #      return featured_papers, rel
 
     def write_group_csv_file(self, output_dir,name, examples, labels):
         fieldnames = ['query', 'label']
@@ -340,6 +345,16 @@ class FeaturesGenerator:
                 examples, label, __ = self.get_examples(config,  row, short_dir)
                 self.write_csv_file(output_dir, row['short query'], config.group_size, examples, label)
 
+    def get_class(self, score):  # TODO - define welll
+        if score < 2.5:
+            return 1
+        elif score < 4:
+            # return 3
+            return 3
+        else:
+            return 5
+
+
     def gen_majority_vote(self, output_dir,  queries, long_dir,  short_dir, config):
         config.group_size = 1
         config.perm = False
@@ -350,24 +365,39 @@ class FeaturesGenerator:
         with open(queries, encoding='utf-8', newline='') as queries_csv:
             reader = csv.DictReader(queries_csv)
             for row in reader:
-                query = row['short query']
+                query = row['long query']
                 examples, label, rel = self.get_examples(config,  row, short_dir)
+                if not examples:
+                    continue
                 labels[query] = label
-                group_features_list = {1: 0, 3: 0, 5: 0}
+                group_features_list = {1: 0, 2:0, 3: 0, 4:0, 5: 0}
                 group_features[query] = {}
+
                 for example in examples:
                     for k, v in example.items():
                         if k == Features.STANCE_SCORE:
-                            stance = stance_shrinking[v]
-                            group_features_list[stance] += 1
+                            group_features_list[v] += 1
+                            #stance = stance_shrinking[v]
+                            #group_features_list[stance] += 1
 
                 sorted_stance = sorted(group_features_list.items(), key=lambda kv: kv[1], reverse=True)
                 majority = sorted_stance[0][0]
-                group_features[query]['majority'] = majority
-                group_features[query]['accuracy'] = int(int(label) == majority)
+                majority_class = self.get_class(majority)
+                int_label = int(label)
+                label_class_group =  self.get_class(int_label)
+                group_features[query]['majority_value'] = majority
+                group_features[query]['majority_class'] = majority_class
+
                 group_features[query]['1'] = group_features_list[1]
+                group_features[query]['2'] = group_features_list[2]
                 group_features[query]['3'] = group_features_list[3]
+                group_features[query]['4'] = group_features_list[4]
                 group_features[query]['5'] = group_features_list[5]
+                print(query)
+
+                group_features[query]['accuracy'] = int(label_class_group == majority_class)
+                group_features[query]['error'] = math.fabs(int_label - majority)
+
 
         self.write_group_csv_file(output_dir, 'majority.csv', group_features, labels)
 
@@ -381,7 +411,9 @@ class FeaturesGenerator:
             reader = csv.DictReader(queries_csv)
             for row in reader:
                 query = row['short query']
-                examples, label, rel = self.get_examples(config,  row, short_dir, ['rest'])
+                examples, label, rel = self.get_examples(config,  row, short_dir)
+                if not examples:
+                    continue
                 labels[query] = label
                 group_features_list = {x:[] for x in examples[0].keys()}
                 group_features[query] = {}
@@ -401,8 +433,8 @@ class FeaturesGenerator:
                 group_features[query]['rel'] = rel
         self.write_group_csv_file(output_dir, 'group_features.csv', group_features, labels)
 
-    def gen_features_for_examples(self, query, examples, group_features, rel, suffix):
-        empty_dict = lambda __=None: {x: [] for x in examples[0].keys() if x != Features.STANCE_SCORE}
+    def gen_features_for_examples(self, query, examples, group_features, rel, suffix, features):
+        empty_dict = lambda __=None: {x: [] for x in features if x != Features.STANCE_SCORE}
         group_features_list = {x: empty_dict() for x in range(1,6)}
 
         for example in examples:
@@ -426,46 +458,80 @@ class FeaturesGenerator:
         with open(queries, encoding='utf-8', newline='') as queries_csv:
             reader = csv.DictReader(queries_csv)
             for row in reader:
-                query = row['short query']
-                rev_file = short_dir + query + "\\" + query + "_rev"
-                clinical_file = short_dir + query + "\\" + query +"_clinical"
-                rest_file = short_dir + query + "\\" + query+ "_rest"
-                label = row['label']
+                long_query = row['long query']
+                backup_label = row['label'].strip()
+                print(long_query)
+                short_query = row['short query']
+                rev_file = short_dir + long_query + "\\" + short_query + "_rev"
+                clinical_file = short_dir + long_query + "\\" + short_query +"_clinical"
+                rest_file = short_dir + long_query + "\\" + short_query+ "_rest"
                 date = row['date']
+                coch_pubmed_url = row['pubmed'].strip()
                 review_year = date.split('.')[2].strip()
-                rev_examples, rev_sample_size = self.generate_examples_per_query([rev_file], review_year, config)
-                clinical_examples, clinical_sample_size = self.generate_examples_per_query([clinical_file], review_year, config)
-                rest_examples, rest_sample_size = self.generate_examples_per_query([rest_file], review_year, config)
-                labels[query] = label
-                group_features[query] = {}
-                self.gen_features_for_examples(query, rev_examples, group_features, rev_sample_size, 'rev')
-                self.gen_features_for_examples(query, clinical_examples, group_features, clinical_sample_size, 'clinical')
-                self.gen_features_for_examples(query, rest_examples, group_features, rest_sample_size, 'rest')
+                label_r, rev_examples, rev_sample_size = self.generate_examples_per_query([rev_file], review_year, config, coch_pubmed_url)
+                label_c, clinical_examples, clinical_sample_size = self.generate_examples_per_query([clinical_file], review_year, config, coch_pubmed_url)
+                label_rest, rest_examples, rest_sample_size = self.generate_examples_per_query([rest_file], review_year, config, coch_pubmed_url)
+
+                if not rev_examples and not clinical_examples and not rest_examples:
+                    print ('NO EXAMLES FOR ' + long_query)
+                    continue
+                if label_c == -1 and label_r == -1 and label_rest == -1:
+                    labels[long_query] = backup_label
+                elif label_r > -1:
+                    labels[long_query] = label_r
+                elif label_c > -1:
+                    labels[long_query] = label_c
+                else:
+                    labels[long_query] = label_rest
+
+                group_features[long_query] = {}
+                if rev_examples:
+                    features = rev_examples[0].keys()
+                elif clinical_examples:
+                    features = clinical_examples[0].keys()
+                else:
+                    features = rest_examples[0].keys()
+                self.gen_features_for_examples(long_query, rev_examples, group_features, rev_sample_size, 'rev', features)
+                self.gen_features_for_examples(long_query, clinical_examples, group_features, clinical_sample_size, 'clinical', features)
+                self.gen_features_for_examples(long_query, rest_examples, group_features, rest_sample_size, 'rest', features)
         self.write_group_csv_file(output_dir, 'group_features_by_paper_type.csv', group_features, labels)
 
     def generate_examples_by_group_and_stance(self, output_dir, queries, long_dir, short_dir, config):
         self.setup_dir(output_dir, long_dir, short_dir, config)
         group_features = {}
         labels = {}
-        stance_shrinking = {1: 1, 2: 1, 3: 3, 4: 5, 5: 5}
+        #stance_shrinking = {1: 1, 2: 1, 3: 3, 4: 5, 5: 5}
         config.group_size = 3
         with open(queries, encoding='utf-8', newline='') as queries_csv:
             reader = csv.DictReader(queries_csv)
             for row in reader:
-                query = row['short query']
                 examples, label, rel = self.get_examples(config,  row, short_dir)
+                if not examples:
+                    continue
+                query = row['long query']
                 labels[query] = label
                 empty_dict = lambda __=None:  {x: [] for x in examples[0].keys() if x != Features.STANCE_SCORE}
-                group_features_list = {1: empty_dict(), 3: empty_dict(), 5: empty_dict(), 'all': empty_dict()}
-                group_features[query] = {'stance_1': 1,'stance_3': 3,'stance_5': 5}
+                group_features_list = {1: empty_dict(),
+                                       2: empty_dict(),
+                                       3: empty_dict(),
+                                       4: empty_dict(),
+                                       5: empty_dict(),
+                                       'all': empty_dict()}
+
+                group_features[query] = {'stance_1': 1,
+                                         'stance_2': 2,
+                                         'stance_3': 3,
+                                         'stance_4': 4,
+                                         'stance_5': 5}
 
                 for example in examples:
-                    stance = stance_shrinking[example[Features.STANCE_SCORE]]
+                    #stance = stance_shrinking[example[Features.STANCE_SCORE]]
+                    stance = example[Features.STANCE_SCORE]
                     for k, v in example.items():
                         if k != Features.STANCE_SCORE:
                             group_features_list[stance][k].append(v)
                             group_features_list['all'][k].append(v)
-                for stance in [1, 3, 5]:
+                for stance in range(1,6):
                     for k, vals in group_features_list[stance].items():
                         group_features[query][k.value + str(stance) + '_mean'] = 0 if not vals else np.mean(vals)
  #               for k, vals in group_features_list['all'].items():
@@ -481,21 +547,23 @@ class FeaturesGenerator:
         self.write_readme(output_dir, long_dir, short_dir, config)
 
     def get_examples(self, config, row, short_dir, exclude = []):
-        label = row['label']
         date = row['date']
+        backup_label = row['label'].strip()
+        coch_pubmed_url = row['pubmed'].strip()
         review_year = date.split('.')[2].strip()
-        q_dir = short_dir + row['short query']
+        q_dir = short_dir + row['long query']
         files = []
-        for (dirpath, dirnames, filenames) in os.walk(q_dir):
-            for f in filenames:
-                sp = f.split('.csv')[0].split('_')
-                if len(sp) > 1:
-                    suffix = sp[1]
-                    if suffix in exclude:
-                        continue
-                files.append(q_dir + '\\' + f)
+        for f in os.listdir(q_dir):
+            sp = f.split('.csv')[0].split('_')
+            if len(sp) > 1:
+                suffix = sp[1]
+                if suffix in exclude:
+                    continue
+            files.append(q_dir + '\\' + f)
 
-        examples, rel = self.generate_examples_per_query(files, review_year, config)
+        label, examples, rel = self.generate_examples_per_query(files, review_year, config, coch_pubmed_url)
+        if label == -1:
+            label = backup_label
         return examples, label, rel
 
     def generate_features2(self, files, review_year, config):
@@ -605,18 +673,20 @@ def gen_all(fg):
     fg.generate_examples_by_group(output_dir + 'group6\\', queries, '', short_dir, config)
     fg.generate_examples_by_group_and_stance(output_dir + 'group7\\', queries, '', short_dir, config)
 
-def gen_one(fg):
-    output_dir = 'C:\\research\\falseMedicalClaims\\examples\\model input\\pubmed\\CAM\\'
-    queries = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\CAM\\classified\\queries.csv'
-    short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\CAM\\classified\\'
-
+def gen(fg):
+    output_dir = 'C:\\research\\falseMedicalClaims\\examples\\model input\\Yael\\'
+    queries = 'C:\\research\\falseMedicalClaims\\examples\\classified\\queries.csv'
+    #queries = 'C:\\research\\falseMedicalClaims\\examples\\to_classify_20_YAEL\\to_classify_20\\queries.csv'
+    #short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\CAM\\classified\\'
+    short_dir = 'C:\\research\\falseMedicalClaims\\examples\\classified\\Yael\\all\\'
 
     config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
                                       review_end_range=5, group_size=1, cochrane_search_range=25, remove_stance=False,
                                       perm = False)
 
-    fg.generate_examples_by_group(output_dir + 'by_group\\', queries, '', short_dir, config)
-    #fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
+#    fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
+    fg.generate_examples_by_group_and_stance(output_dir +  'by_group\\', queries, '', short_dir, config)
+#    fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
 
 
 def gen_group(fg):
@@ -627,8 +697,9 @@ def gen_group(fg):
     config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
                                       review_end_range=5, group_size=3, cochrane_search_range=20, remove_stance=False,
                                       perm = False)
-    fg.generate_examples_by_group(output_dir + 'group7\\', queries, '', short_dir, config)
-    fg.generate_examples_by_group_and_stance(output_dir + 'group7\\', queries, '', short_dir, config)
+   # fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
+    fg.generate_examples_by_group_and_stance(output_dir + 'by_group\\', queries, '', short_dir, config)
+   # fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
 
 
 def main():
@@ -643,7 +714,7 @@ def main():
     fetcher = PubMedFetcher(email='anat.hashavit@gmail.com')
     paper_builder = PaperBuilder(hIndex, paper_cache, fetcher, '../resources/fg_noindex.json')
     fg = FeaturesGenerator(paper_builder)
-    gen_one(fg)
+    gen(fg)
     #gen_all(fg)
     #gen_group(fg)
     #fg.generate_examples(output_dir + 'group4\\', queries, '', short_dir, config)
