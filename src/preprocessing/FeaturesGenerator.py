@@ -346,9 +346,9 @@ class FeaturesGenerator:
                 self.write_csv_file(output_dir, row['short query'], config.group_size, examples, label)
 
     def get_class(self, score):  # TODO - define welll
-        if score < 2.5:
+        if score < 3:
             return 1
-        elif score < 4:
+        elif score < 5:
             # return 3
             return 3
         else:
@@ -563,6 +563,7 @@ class FeaturesGenerator:
 
         label, examples, rel = self.generate_examples_per_query(files, review_year, config, coch_pubmed_url)
         if label == -1:
+            print(' no label for ' + row['long query'] )
             label = backup_label
         return examples, label, rel
 
@@ -674,17 +675,17 @@ def gen_all(fg):
     fg.generate_examples_by_group_and_stance(output_dir + 'group7\\', queries, '', short_dir, config)
 
 def gen(fg):
-    output_dir = 'C:\\research\\falseMedicalClaims\\examples\\model input\\Yael\\'
-    queries = 'C:\\research\\falseMedicalClaims\\examples\\classified\\queries.csv'
+    output_dir = 'C:\\research\\falseMedicalClaims\ECAI\\model input\\Yael\\'
+    queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries.csv'
     #queries = 'C:\\research\\falseMedicalClaims\\examples\\to_classify_20_YAEL\\to_classify_20\\queries.csv'
     #short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\CAM\\classified\\'
-    short_dir = 'C:\\research\\falseMedicalClaims\\examples\\classified\\Yael\\all\\'
+    short_dir = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\Yael\\all\\'
 
     config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
                                       review_end_range=5, group_size=1, cochrane_search_range=25, remove_stance=False,
                                       perm = False)
 
-#    fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
+    #fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
     fg.generate_examples_by_group_and_stance(output_dir +  'by_group\\', queries, '', short_dir, config)
 #    fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
 
@@ -697,7 +698,7 @@ def gen_group(fg):
     config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
                                       review_end_range=5, group_size=3, cochrane_search_range=20, remove_stance=False,
                                       perm = False)
-   # fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
+    fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
     fg.generate_examples_by_group_and_stance(output_dir + 'by_group\\', queries, '', short_dir, config)
    # fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
 
@@ -714,7 +715,7 @@ def main():
     fetcher = PubMedFetcher(email='anat.hashavit@gmail.com')
     paper_builder = PaperBuilder(hIndex, paper_cache, fetcher, '../resources/fg_noindex.json')
     fg = FeaturesGenerator(paper_builder)
-    gen(fg)
+    geen(fg)
     #gen_all(fg)
     #gen_group(fg)
     #fg.generate_examples(output_dir + 'group4\\', queries, '', short_dir, config)
