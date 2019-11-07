@@ -146,7 +146,8 @@ class FeaturesGenerator:
         citation_count = 0 if not paper.pm_cited else self.get_citation_count(config, review_year, paper)
         features[Features.RECENT_WEIGHTED_CITATION_COUNT] = (current_score * citation_count)
         features[Features.CITATION_COUNT] = citation_count
-        #hIndex_wavg, wavg = self.compute_moving_averages(paper, review_year, config)
+        ewa = self.compute_moving_averages(paper, review_year, config)
+        features[Features.CITATIONS_HINDEX_WAVG] = ewa
         #citations_wavg = self.compute_moving_averages(paper, review_year, config)
         #features[Features.CITATIONS_WAVG].add_citations_hIndex_weighted_feature(hIndex_wavg)
         #features.add_citations_wighted_average_feature(wavg)
@@ -396,6 +397,7 @@ class FeaturesGenerator:
                 sorted_stance = sorted(group_features_list.items(), key=lambda kv: kv[1], reverse=True)
                 majority = sorted_stance[0][0]
                 majority_class = self.get_class(majority)
+                print(query)
                 int_label = int(label)
                 label_class_group =  self.get_class(int_label)
                 group_features[query]['majority_value'] = majority
@@ -406,7 +408,7 @@ class FeaturesGenerator:
                 group_features[query]['3'] = group_features_list[3]
                 group_features[query]['4'] = group_features_list[4]
                 group_features[query]['5'] = group_features_list[5]
-                print(query)
+
 
                 group_features[query]['accuracy'] = int(label_class_group == majority_class)
                 group_features[query]['error'] = math.fabs(int_label - majority)
@@ -561,11 +563,47 @@ class FeaturesGenerator:
 
         self.write_group_csv_file(output_dir, 'group_features_by_stance_and_num.csv', group_features, labels)
 
-    def generate_examples_by_group_and_stance(self, output_dir, queries, long_dir, short_dir, config):
+    def generate_examples_by_group_and_class(self, output_dir, queries, long_dir, short_dir, config):
         self.setup_dir(output_dir, long_dir, short_dir, config)
         group_features = {}
         labels = {}
-        #stance_shrinking = {1: 1, 2: 1, 3: 3, 4: 5, 5: 5}
+        stance_shrinking = {1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+        config.group_size = 3
+        with open(queries, encoding='utf-8', newline='') as queries_csv:
+            reader = csv.DictReader(queries_csv)
+            for row in reader:
+                examples, label, rel = self.get_examples(config, row, short_dir)
+                if not examples:
+                    continue
+                query = row['long query']
+                labels[query] = stance_shrinking[label]
+                empty_dict = lambda __=None: {x: [] for x in examples[0].keys() if x != Features.STANCE_SCORE}
+                group_features_list = {1: empty_dict(),
+                                       2: empty_dict(),
+                                       3: empty_dict()
+                                     }
+
+
+                for example in examples:
+                    stance = stance_shrinking[example[Features.STANCE_SCORE]]
+                    for k, v in example.items():
+                        if k != Features.STANCE_SCORE:
+                            group_features_list[stance][k].append(v)
+                for stance in range(1, 6):
+                    for k, vals in group_features_list[stance].items():
+                        group_features[query][k.value + str(stance) + '_mean'] = 0 if not vals else np.mean(vals)
+                #               for k, vals in group_features_list['all'].items():
+                #                       group_features[query][k.value + 'all_mean'] = 0 if not vals else np.mean(vals)
+                #                       group_features[query][k.value + 'all_std'] = 0 if not vals else np.std(vals)
+                group_features[query]['rel'] = rel
+        output_filename = 'group_features_by_stance_citation_range_' + str(config.review_end_range) + '.csv'
+        self.write_group_csv_file(output_dir, output_filename, group_features, labels)
+
+    def generate_examples_by_group_and_stance(self, output_dir, queries, long_dir, short_dir, config, shrink=False):
+        self.setup_dir(output_dir, long_dir, short_dir, config)
+        group_features = {}
+        labels = {}
+        stance_shrinking = {1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
         config.group_size = 3
         with open(queries, encoding='utf-8', newline='') as queries_csv:
             reader = csv.DictReader(queries_csv)
@@ -574,7 +612,11 @@ class FeaturesGenerator:
                 if not examples:
                     continue
                 query = row['long query']
-                labels[query] = label
+                if shrink:
+                    labels[query] = stance_shrinking[int(label)]
+                else:
+                    labels[query] = label
+
                 empty_dict = lambda __=None:  {x: [] for x in examples[0].keys() if x != Features.STANCE_SCORE}
                 group_features_list = {1: empty_dict(),
                                        2: empty_dict(),
@@ -603,7 +645,10 @@ class FeaturesGenerator:
  #                       group_features[query][k.value + 'all_mean'] = 0 if not vals else np.mean(vals)
  #                       group_features[query][k.value + 'all_std'] = 0 if not vals else np.std(vals)
                 group_features[query]['rel'] = rel
-        output_filename = 'group_features_by_stance_citation_range_' + str(config.review_end_range) + '.csv'
+        if shrink:
+            output_filename = 'group_features_by_stance_citation_range_' + str(config.review_end_range) + '_shrink.csv'
+        else:
+            output_filename = 'group_features_by_stance_citation_range_' + str(config.review_end_range) + '.csv'
         self.write_group_csv_file(output_dir,output_filename, group_features, labels)
 
 
@@ -699,7 +744,7 @@ class FeaturesGenerationConfig:
         self.perm = perm
         self.rel = rel
 
-def gen_all(fg):
+def gen_all_groups(fg):
 
     # fg = FeaturesGenerator('../resources/fg_cache3.json', '../resources/scimagojr 2018.csv','../resources/fg_noindex.json')
 
@@ -740,19 +785,20 @@ def gen_all(fg):
     fg.generate_examples_by_group(output_dir + 'group6\\', queries, '', short_dir, config)
     fg.generate_examples_by_group_and_stance(output_dir + 'group7\\', queries, '', short_dir, config)
 
-def gen(fg):
+def gen_Yael(fg):
     output_dir = 'C:\\research\\falseMedicalClaims\ECAI\\model input\\Yael\\'
-    #queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries.csv'
-    queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries1_2.csv'
+    queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries_all.csv'
+    #queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries1_2.csv'
     #queries = 'C:\\research\\falseMedicalClaims\\examples\\to_classify_20_YAEL\\to_classify_20\\queries.csv'
     #short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\CAM\\classified\\'
-    short_dir = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\Yael\\sample1_and_2\\'
+    #short_dir = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\Yael\\sample1_and_2\\'
+    short_dir = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\Yael\\all\\'
 
     config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
-                                      review_end_range=10, group_size=3, cochrane_search_range=15, remove_stance=False,
+                                      review_end_range=1, group_size=3, cochrane_search_range=15, remove_stance=False,
                                       perm = False)
 
-    #fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
+    fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
     fg.generate_examples_by_group_and_stance(output_dir + 'by_group\\', queries, '', short_dir, config)
     #fg.generate_examples_by_group_and_stance_and_majority(output_dir +  'by_group\\', queries, '', short_dir, config)
 #    fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
@@ -770,6 +816,34 @@ def gen_group(fg):
     fg.generate_examples_by_group_and_stance(output_dir + 'by_group\\', queries, '', short_dir, config)
    # fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
 
+def gen_Yael(fg):
+    output_dir = 'C:\\research\\falseMedicalClaims\ECAI\\model input\\Yael\\'
+    queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries_all.csv'
+    #queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries1_2.csv'
+    #queries = 'C:\\research\\falseMedicalClaims\\examples\\to_classify_20_YAEL\\to_classify_20\\queries.csv'
+    #short_dir = 'C:\\research\\falseMedicalClaims\\examples\\short queries\\pubmed\\CAM\\classified\\'
+    #short_dir = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\Yael\\sample1_and_2\\'
+    short_dir = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\Yael\\all\\'
+
+    config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
+                                      review_end_range=1, group_size=3, cochrane_search_range=15, remove_stance=False,
+                                      perm = False)
+
+    #fg.gen_majority_vote(output_dir +  'by_group\\', queries, '', short_dir, config)
+        fg.generate_examples_by_group_and_stance(output_dir + 'by_group\\', queries, '', short_dir, config)
+    #fg.generate_examples_by_group_and_stance_and_majority(output_dir +  'by_group\\', queries, '', short_dir, config)
+#    fg.generate_examples_by_group_paper_type(output_dir + 'by_group\\', queries, '', short_dir, config)
+
+def gen_Yael_sigal_Irit(fg):
+    output_dir = 'C:\\research\\falseMedicalClaims\ECAI\\model input\\Yael_sigal_Irit\\'
+    queries = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\queries1_2.csv'
+    short_dir = 'C:\\research\\falseMedicalClaims\\ECAI\\examples\\classified\\Yael_sigal_Irit\\'
+
+    config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=None, review_start_range=15,
+                                      review_end_range=10, group_size=None, cochrane_search_range=15, remove_stance=None,
+                                      perm=None)
+    #fg.gen_majority_vote(output_dir + 'by_group\\', queries, '', short_dir, config)
+    fg.generate_examples_by_group_and_stance(output_dir + 'by_group\\', queries, '', short_dir, config)
 
 def main():
     include_irrelevant = [True, False]
@@ -783,7 +857,8 @@ def main():
     fetcher = PubMedFetcher(email='anat.hashavit@gmail.com')
     paper_builder = PaperBuilder(hIndex, paper_cache, fetcher, '../resources/fg_noindex.json')
     fg = FeaturesGenerator(paper_builder)
-    gen(fg)
+    gen_Yael(fg)
+    #gen_Yael_sigal_Irit(fg)
     #gen_all(fg)
     #gen_group(fg)
     #fg.generate_examples(output_dir + 'group4\\', queries, '', short_dir, config)
