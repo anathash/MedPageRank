@@ -1,0 +1,55 @@
+query,value_label,class_label,DecisionTreeClassifier_class,RandomForestClassifier_class,SVC_class,majority_class,DecisionTreeClassifier_value,RandomForestClassifier_value,SVC_value,majority_value,DecisionTreeClassifier_acc,RandomForestClassifier_acc,SVC_acc,majority_acc,DecisionTreeClassifier_error,RandomForestClassifier_error,SVC_error,majority_error,DecisionTreeClassifier_val_pessim,RandomForestClassifier_val_pessim,SVC_val_pessim,majority_val_pessim,DecisionTreeClassifier_val_optim,RandomForestClassifier_val_optim,SVC_val_optim,majority_val_optim,DecisionTreeClassifier_class_pessim,RandomForestClassifier_class_pessim,SVC_class_pessim,majority_class_pessim,DecisionTreeClassifier_calss_optim,RandomForestClassifier_calss_optim,SVC_calss_optim,majority_calss_optim
+Acupuncture and acupressure for premenstrual syndrome,4,3,3,3,3,5,4.0,3.0,3.0,5,1,1,1,0,0.0,1.0,1.0,1.0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,1
+Acupuncture for uterine fibroids,3,3,3,3,3,5,4.0,3.0,3.0,5,1,1,1,0,1.0,0.0,0.0,2.0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,1
+Antioxidant supplements for liver diseases,3,3,3,3,3,3,3.0,4.0,3.0,4,1,1,1,1,0.0,1.0,0.0,1.0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0
+Antioxidants for female subfertility,2,1,1,1,3,5,2.0,2.0,3.0,5,1,1,0,0,0.0,0.0,1.0,3.0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1
+Auricular acupuncture for cocaine dependence,1,1,1,3,3,1,2.0,3.0,3.0,1,1,0,0,1,1.0,2.0,2.0,0.0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,1,0
+Cannabinoids for epilepsy,3,3,3,3,3,3,3.0,3.0,3.0,3,1,1,1,1,0.0,0.0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Cannabis for the treatment of ulcerative colitis,3,3,3,3,3,3,3.0,3.0,3.0,4,1,1,1,1,0.0,0.0,0.0,1.0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0
+Dietary flavonoid for preventing colorectal neoplasms,3,3,3,3,3,1,3.0,3.0,3.0,1,1,1,1,0,0.0,0.0,0.0,2.0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0
+Electrical stimulation for the treatment of rheumatoid arthritis,4,3,1,3,3,5,2.0,3.0,3.0,5,0,1,1,0,2.0,1.0,1.0,1.0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1
+Electromagnetic therapy for treating pressure ulcers,2,1,3,3,3,1,3.0,4.0,3.0,2,0,0,0,1,1.0,2.0,1.0,0.0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0
+Guided imagery for treating hypertension in pregnancy,3,3,3,3,3,3,3.0,3.0,3.0,3,1,1,1,1,0.0,0.0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Homeopathy for chronic asthma,3,3,3,3,3,3,3.0,3.0,3.0,3,1,1,1,1,0.0,0.0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Music therapy for depression,4,3,3,3,3,5,4.0,3.0,3.0,5,1,1,1,0,0.0,1.0,1.0,1.0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,1
+Nutritional support for liver disease,1,1,3,3,3,5,4.0,3.0,3.0,5,0,0,0,0,3.0,2.0,2.0,4.0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1
+Oral zinc for the prevention of hyperbilirubinaemia in neonates,1,1,3,3,3,1,3.0,3.0,3.0,1,0,0,0,1,2.0,2.0,2.0,0.0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0
+Probiotics for preventing gestational diabetes,3,3,3,1,3,3,4.0,1.0,3.0,4,1,0,1,1,1.0,2.0,0.0,1.0,0,1,0,0,1,0,0,1,0,1,0,0,0,0,0,0
+Selenium supplementation for asthma,4,3,1,3,3,5,1.0,3.0,3.0,5,0,1,1,0,3.0,1.0,1.0,1.0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1
+Vitamin B6 for cognition,2,1,3,3,3,3,4.0,3.0,3.0,4,0,0,0,0,2.0,1.0,1.0,2.0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1
+Vitamin E for intermittent claudication,3,3,3,3,3,3,3.0,3.0,3.0,4,1,1,1,1,0.0,0.0,0.0,1.0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0
+Xuebijing for paraquat poisoning,2,1,3,3,3,5,4.0,3.0,3.0,5,0,0,0,0,2.0,1.0,1.0,3.0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1
+Yoga for stroke rehabilitation,4,3,3,3,3,3,3.0,3.0,3.0,4,1,1,1,1,1.0,1.0,1.0,0.0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+Acupuncture for the prevention of episodic migraine,4,3,3,3,3,5,3.0,4.0,3.0,5,1,1,1,0,1.0,0.0,1.0,1.0,1,0,1,0,0,0,0,1,0,0,0,0,0,0,0,1
+Cinnamon for diabetes mellitus,3,3,1,1,1,3,2.0,2.0,2.0,4,0,0,0,1,1.0,1.0,1.0,1.0,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,0
+Cranberries for preventing urinary tract infections,2,1,1,1,3,5,2.0,2.0,3.0,5,1,1,0,0,0.0,0.0,1.0,3.0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1
+Ginkgo biloba for cognitive impairment and dementia,2,1,1,1,3,3,2.0,2.0,3.0,4,1,1,0,0,0.0,0.0,1.0,2.0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1
+Glucosamine therapy for treating osteoarthritis,1,1,3,3,3,3,4.0,3.0,3.0,4,0,0,0,0,3.0,2.0,2.0,3.0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1
+Honey for acute cough in children,4,3,1,3,3,3,1.0,3.0,3.0,4,0,1,1,1,3.0,1.0,1.0,0.0,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0
+Omega 3 fatty acids for the treatment of dementia,2,1,1,3,3,3,2.0,3.0,3.0,4,1,0,0,0,0.0,1.0,1.0,2.0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1
+Probiotics  acute infectious diarrhoea,5,5,3,1,3,5,4.0,1.0,3.0,5,0,0,0,1,1.0,4.0,2.0,0.0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0
+Vitamin C for preventing and treating the common cold,2,1,1,1,3,3,1.0,1.0,3.0,4,1,1,0,0,1.0,1.0,1.0,2.0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1
+Chinese herbal medicine for atopic eczema,3,3,3,3,3,3,4.0,4.0,3.0,4,1,1,1,1,1.0,1.0,0.0,1.0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0
+Balneotherapy (or spa therapy) for rheumatoid arthritis,3,3,3,3,3,3,4.0,4.0,3.0,3,1,1,1,1,1.0,1.0,0.0,0.0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0
+Rutosides for prevention of post-thrombotic syndrome,3,3,3,1,3,1,3.0,1.0,3.0,1,1,0,1,0,0.0,2.0,0.0,2.0,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0
+Hypnosis for induction of labour,3,3,3,3,3,3,3.0,3.0,3.0,3,1,1,1,1,0.0,0.0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Herbal preparations for uterine fibroids,3,3,3,3,3,3,4.0,3.0,3.0,4,1,1,1,1,1.0,0.0,0.0,1.0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0
+Melatonin for the treatment of dementia,2,1,3,1,3,3,4.0,2.0,3.0,4,0,1,0,0,2.0,0.0,1.0,2.0,0,0,0,0,1,0,1,1,0,0,0,0,1,0,1,1
+Therapeutic touch for anxiety disorders,3,3,3,3,3,3,4.0,3.0,3.0,4,1,1,1,1,1.0,0.0,0.0,1.0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0
+Low-fat diets for acquired hypercholesterolaemia,3,3,3,3,3,5,3.0,3.0,3.0,5,1,1,1,0,0.0,0.0,0.0,2.0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1
+Music interventions for preoperative anxiety,5,5,3,1,3,5,4.0,1.0,3.0,5,0,0,0,1,1.0,4.0,2.0,0.0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0
+Valerian for anxiety disorders,3,3,3,1,3,3,3.0,1.0,3.0,4,1,0,1,1,0.0,2.0,0.0,1.0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0
+Acupuncture for glaucoma,3,3,3,3,3,5,4.0,3.0,3.0,5,1,1,1,0,1.0,0.0,0.0,2.0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,1
+Phlebotonics for haemorrhoids,4,3,3,3,3,3,3.0,3.0,3.0,3,1,1,1,1,1.0,1.0,1.0,1.0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0
+Acupuncture for mumps in children,3,3,3,3,3,3,3.0,3.0,3.0,3,1,1,1,1,0.0,0.0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Vitamin B for treating peripheral neuropathy,3,3,3,3,3,3,3.0,3.0,3.0,4,1,1,1,1,0.0,0.0,0.0,1.0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0
+Thermotherapy for treating rheumatoid arthritis,4,3,3,3,3,3,3.0,4.0,3.0,4,1,1,1,1,1.0,0.0,1.0,0.0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+Horticultural therapy for schizophrenia,3,3,3,3,3,3,3.0,3.0,3.0,4,1,1,1,1,0.0,0.0,0.0,1.0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0
+Vitamin C for preventing and treating pneumonia,4,3,3,3,3,3,4.0,3.0,3.0,4,1,1,1,1,0.0,1.0,1.0,0.0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+Phlebotonics for venous insufficiency,4,3,1,3,3,1,2.0,3.0,3.0,1,0,1,1,0,2.0,1.0,1.0,3.0,1,1,1,1,0,0,0,0,1,0,0,1,0,0,0,0
+Creatine for treating muscle disorders,5,5,3,1,1,1,4.0,2.0,2.0,2,0,0,0,0,1.0,3.0,3.0,3.0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0
+Thymic peptides for treatment of cancer patients,3,3,3,3,3,3,4.0,4.0,3.0,4,1,1,1,1,1.0,1.0,0.0,1.0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0
+Acupuncture for stroke rehabilitation,4,3,1,1,3,5,1.0,2.0,3.0,5,0,0,1,0,3.0,2.0,1.0,1.0,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0,1
+Hypnosis for schizophrenia,3,3,3,3,3,3,3.0,3.0,3.0,3,1,1,1,1,0.0,0.0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Acupuncture for epilepsy,1,1,5,1,3,5,5.0,2.0,3.0,5,0,1,0,0,4.0,1.0,2.0,4.0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,1,1
+Fermented milk for hypertension,1,1,3,3,3,5,3.0,3.0,3.0,5,0,0,0,0,2.0,2.0,2.0,4.0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1
