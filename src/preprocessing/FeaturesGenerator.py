@@ -147,8 +147,8 @@ class FeaturesGenerator:
         citation_count = 0 if not paper.pm_cited else self.get_citation_count(config, review_year, paper)
         features[Features.RECENT_WEIGHTED_CITATION_COUNT] = (current_score * citation_count)
         features[Features.CITATION_COUNT] = citation_count
-        ewa = self.compute_moving_averages(paper, review_year, config)
-        features[Features.CITATIONS_HINDEX_WAVG] = ewa
+        #ewa = self.compute_moving_averages(paper, review_year, config)
+        #features[Features.CITATIONS_HINDEX_WAVG] = ewa
         #citations_wavg = self.compute_moving_averages(paper, review_year, config)
         #features[Features.CITATIONS_WAVG].add_citations_hIndex_weighted_feature(hIndex_wavg)
         #features.add_citations_wighted_average_feature(wavg)
@@ -600,11 +600,10 @@ class FeaturesGenerator:
         output_filename = 'group_features_by_stance_citation_range_' + str(config.review_end_range) + '.csv'
         self.write_group_csv_file(output_dir, output_filename, group_features, labels)
 
-    def generate_examples_by_group_and_stance(self, output_dir, queries, long_dir, short_dir, config, shrink=False):
+    def generate_examples_by_group_and_stance_only_rel(self, output_dir, queries, long_dir, short_dir, config):
         self.setup_dir(output_dir, long_dir, short_dir, config)
         group_features = {}
         labels = {}
-        stance_shrinking = {1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
         config.group_size = 3
         with open(queries, encoding='utf-8', newline='') as queries_csv:
             reader = csv.DictReader(queries_csv)
@@ -613,12 +612,47 @@ class FeaturesGenerator:
                 if not examples:
                     continue
                 query = row['long query']
+                labels[query] = label
+
+                empty_dict = lambda __=None:  {x: [] for x in examples[0].keys()}
+                group_features_list = {1: empty_dict(),
+                                       2: empty_dict(),
+                                       3: empty_dict(),
+                                       4: empty_dict(),
+                                       5: empty_dict()}
+
+                group_features[query] = {}
+                for example in examples:
+                    stance = example[Features.STANCE_SCORE]
+                    for k, v in example.items():
+                        if k != Features.STANCE_SCORE:
+                            group_features_list[stance][k].append(v)
+                for stance in range(1,6):
+                    for k, vals in group_features_list[stance].items():
+                        group_features[query][k.value + str(stance) + '_mean'] = 0 if not vals else np.mean(vals)
+                group_features[query]['rel'] = rel
+        output_filename = 'rel_only_group_features_by_stance_citation_range_' + str(config.review_end_range) + '.csv'
+        self.write_group_csv_file(output_dir,output_filename, group_features, labels)
+
+    def generate_examples_by_group_and_stance_old(self, output_dir, queries, long_dir, short_dir, config, shrink=False):
+        self.setup_dir(output_dir, long_dir, short_dir, config)
+        group_features = {}
+        labels = {}
+        stance_shrinking = {1: 1, 2: 1, 3: 2, 4: 3, 5: 3}
+        config.group_size = 3
+        with open(queries, encoding='utf-8', newline='') as queries_csv:
+            reader = csv.DictReader(queries_csv)
+            for row in reader:
+                examples, label, rel = self.get_examples(config, row, short_dir, exclude=[])
+                if not examples:
+                    continue
+                query = row['long query']
                 if shrink:
                     labels[query] = stance_shrinking[int(label)]
                 else:
                     labels[query] = label
 
-                empty_dict = lambda __=None:  {x: [] for x in examples[0].keys() if x != Features.STANCE_SCORE}
+                empty_dict = lambda __=None: {x: [] for x in examples[0].keys() if x != Features.STANCE_SCORE}
                 group_features_list = {1: empty_dict(),
                                        2: empty_dict(),
                                        3: empty_dict(),
@@ -632,24 +666,80 @@ class FeaturesGenerator:
                                          'stance_4': 4,
                                          'stance_5': 5}
                 for example in examples:
-                    #stance = stance_shrinking[example[Features.STANCE_SCORE]]
+                    # stance = stance_shrinking[example[Features.STANCE_SCORE]]
                     stance = example[Features.STANCE_SCORE]
                     for k, v in example.items():
                         if k != Features.STANCE_SCORE:
                             group_features_list[stance][k].append(v)
                             group_features_list['all'][k].append(v)
-                for stance in range(1,6):
+                for stance in range(1, 6):
                     for k, vals in group_features_list[stance].items():
                         group_features[query][k.value + str(stance) + '_mean'] = 0 if not vals else np.mean(vals)
-   #             for k, vals in group_features_list['all'].items():
-   #                     group_features[query][k.value + 'all_mean'] = 0 if not vals else np.mean(vals)
-   #                     group_features[query][k.value + 'all_std'] = 0 if not vals else np.std(vals)
+                #             for k, vals in group_features_list['all'].items():
+                #                     group_features[query][k.value + 'all_mean'] = 0 if not vals else np.mean(vals)
+                #                     group_features[query][k.value + 'all_std'] = 0 if not vals else np.std(vals)
                 group_features[query]['rel'] = rel
         if shrink:
-            output_filename = 'group_features_by_stance_citation_range_' + str(config.review_end_range) + '_shrink.csv'
+            output_filename = 'rel_only_group_features_by_stance_citation_range_' + str(
+                config.review_end_range) + '_shrink.csv'
         else:
-            output_filename = 'group_features_by_stance_citation_range_' + str(config.review_end_range) + '.csv'
-        self.write_group_csv_file(output_dir,output_filename, group_features, labels)
+            output_filename = 'rel_=only_group_features_by_stance_citation_range_' + str(
+                config.review_end_range) + '.csv'
+        self.write_group_csv_file(output_dir, output_filename, group_features, labels)
+
+    def generate_examples_by_group_and_stance(self, output_dir, queries, long_dir, short_dir, config):
+        self.setup_dir(output_dir, long_dir, short_dir, config)
+        group_features = {}
+        labels = {}
+        config.group_size = 3
+        config.review_end_range = 1
+        with open(queries, encoding='utf-8', newline='') as queries_csv:
+            reader = csv.DictReader(queries_csv)
+            for row in reader:
+                examples, label, rel = self.get_examples(config, row, short_dir, exclude=[])
+                if not examples:
+                    continue
+                query = row['long query']
+                labels[query] = label
+
+                empty_dict = lambda __=None: {x: [] for x in examples[0].keys()}
+                group_features_list = {1: empty_dict(),
+                                       2: empty_dict(),
+                                       3: empty_dict(),
+                                       4: empty_dict(),
+                                       5: empty_dict(),
+                                       'all': empty_dict()}
+                group_features[query] = {}
+
+                for example in examples:
+                    stance = example[Features.STANCE_SCORE]
+                    for k, v in example.items():
+                        group_features_list[stance][k].append(v)
+                        group_features_list['all'][k].append(v)
+                for stance in range(1, 6):
+                    for k, vals in group_features_list[stance].items():
+                        group_features[query][k.value + str(stance) + '_mean'] = 0 if not vals else np.mean(vals)
+                h_index_all_sum = 0
+                h_index_all_acc = 0
+                citations_all_sum = 0
+                citations_all_acc = 0
+                for stance in range(1, 6):
+                    stance_hIndex = group_features[query][Features.H_INDEX.value + str(stance) + '_mean']
+                    stance_citations = group_features[query][Features.CITATION_COUNT.value + str(stance) + '_mean']
+                    h_index_all_sum += stance_hIndex
+                    citations_all_sum += stance_citations
+                    h_index_all_acc += stance * stance_hIndex
+                    citations_all_acc += stance * stance_citations
+
+                for k, vals in group_features_list['all'].items():
+                    group_features[query][k.value + 'all_mean'] = 0 if not vals else np.mean(vals)
+
+                group_features[query]['rel'] = rel
+                group_features[query]['h_index_stance_avg'] = h_index_all_acc /h_index_all_sum
+                group_features[query]['citations_stance_avg'] = 1 if citations_all_sum == 0 else  citations_all_acc /citations_all_sum
+
+        output_filename = 'group_features_by_stance_citation_range_all.csv'
+        self.write_group_csv_file(output_dir, output_filename, group_features, labels)
 
 
     def setup_dir(self, output_dir, long_dir, short_dir, config):
