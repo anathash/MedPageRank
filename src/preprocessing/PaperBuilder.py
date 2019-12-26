@@ -14,16 +14,19 @@ class PaperBuilder:
         self.paper_cache = article_cache
         self.fetch = fetcher
         self.no_index_filename = no_index_filename
+#        with open( self.no_index_filename, 'w') as file:
+#            file.write('journal,issn \n')
+
 
     def get_h_index(self, issn, journal):
         if not self.hIndex or not issn:
             return 1
         #issn = '' if not issn else issn.replace('-', '')
         h_index = self.hIndex.get_H_index(issn)
-        #if h_index == 0:
-        #    with open( self.no_index_filename, 'a') as file:
-        #        file.write(journal+',' + issn + ' \n')
-        #h_index += 1
+        if h_index == 0:
+            with open( self.no_index_filename, 'a') as file:
+                file.write(journal+',' + issn + ' \n')
+            h_index += 1
         return h_index
 
     def get_paper_from_cache(self, pmid):
@@ -37,7 +40,8 @@ class PaperBuilder:
                 paper.h_index = self.get_h_index(paper.issn, paper.journal)
                 if paper.h_index > 1:
                     self.paper_cache.add_paper(paper.pmid, paper)
-        #hack fix because of the cache
+
+            #hack fix because of the cache
             if paper.pm_cited == None:
                 paper.pm_cited = []
         return paper
@@ -77,6 +81,8 @@ class PaperBuilder:
         print('building paper with pmid ' + pmid)
         paper = self.get_paper_from_cache(pmid)
         if paper:
+#            if paper.h_index <= 1:
+#                paper.h_index = self.get_h_index(paper.issn, paper.journal)
             return paper
         article = self.get_article_from_pubmed(pmid)
         if not article.year:
