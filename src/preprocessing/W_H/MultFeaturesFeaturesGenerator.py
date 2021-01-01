@@ -237,6 +237,54 @@ class FeaturesGenerator:
       #  else:
       #      return featured_papers, rel
 
+    def open_group_csv_file(self, output_dir, name, fieldnames):
+        with open(output_dir + name, 'w', encoding='utf-8', newline='') as outputCsv:
+            wr = csv.DictWriter(outputCsv, fieldnames=fieldnames)
+            wr.writeheader()
+
+        with open(output_dir + 'reports/majority.csv', 'w', encoding='utf-8', newline='') as majCsv:
+            wr = csv.DictWriter(majCsv,
+                                fieldnames=['query', 'label', 'majority_value', 'majority_class', '1', '2', '3',
+                                            'accuracy', 'error'])
+            wr.writeheader()
+
+        with open(output_dir + 'labels_' + name, 'w', encoding='utf-8', newline='') as labelsCSv:
+            wr = csv.DictWriter(labelsCSv, fieldnames=['query', 'value_label'])
+            wr.writeheader()
+
+    def write_output_row(self, output_dir, name, query, features, label, fieldnames, votes):
+        sorted_votes = sorted(votes.items(), key=lambda x: x[1], reverse=True)
+        majority_value = sorted_votes[0][0]
+
+        with open(output_dir + name, 'a', encoding='utf-8', newline='') as outputCsv:
+            wr = csv.DictWriter(outputCsv, fieldnames)
+            row = {'query': query, 'label': label}
+            for k, v in features.items():
+                row[k] = str(v)
+            wr.writerow(row)
+
+        with open(output_dir + 'labels.csv', 'a', encoding='utf-8', newline='') as labelsCSv:
+            wr = csv.DictWriter(labelsCSv, fieldnames=['query', 'value_label'])
+            row = {'query': query, 'value_label': label}
+            wr.writerow(row)
+
+
+        with open(output_dir + '/reports/majority.csv', 'a', encoding='utf-8', newline='') as majCsv:
+            wr = csv.DictWriter(majCsv, fieldnames=['query','label','majority_value','majority_class','1','2','3','accuracy','error'])
+
+            row = {'query': query, 'label': label,
+                    '1': votes[1],
+                    '2': votes[2],
+                    '3': votes[3],
+                    'majority_value': majority_value,
+                    'majority_class': majority_value,
+                    'error':abs(label - majority_value),
+                   'accuracy': int(label == majority_value)}
+            wr.writerow(row)
+
+
+
+
     def write_group_csv_file(self, output_dir,name, examples, labels):
         fieldnames = ['query', 'label']
         fieldnames.extend(list(list(examples.values())[0].keys()))
@@ -984,50 +1032,70 @@ class FeaturesGenerator:
         self.write_group_csv_file(output_dir, output_filename, group_features, labels)
 
 
-
-
     def generate_examples_by_group_and_stance(self, output_dir, queries, long_dir, short_dir, config,
-                                              include_dist_features=True, label_shrink=True, normalize = False):
+                                              include_dist_features=True, stance_shrink=True, normalize = False, outlayers = []):
         self.setup_dir(output_dir, long_dir, short_dir, config)
         group_features = {}
         labels = {}
+
         config.group_size = 3
         config.review_end_range = 1
-        with open(queries, encoding='utf-8', newline='') as queries_csv:
+        fieldnames = None
+        if stance_shrink:
+            output_filename = 'group_features_by_stance_shrink.csv'
+        else:
+            if include_dist_features:
+                output_filename = 'dist_features_group_features_by_stance.csv'
+            else:
+                output_filename = 'group_features_by_stance.csv'
+        null_qs = []
+        with open(queries,  encoding ='utf-8', newline='') as queries_csv:
+
             reader = csv.DictReader(queries_csv)
             for row in reader:
+                query = row['long query']
+                if query in outlayers:
+                    continue
+                label_votes = {x: 0 for x in range(1, 4)}
                 examples, label, num_ir, rel = self.get_examples(config, row, short_dir, exclude=[])
                 if not examples:
+                    null_qs.append(query)
+                    print(query)
                     continue
-                query = row['long query']
                 labels[query] = label
 
                 empty_dict = lambda __=None: {x: [] for x in examples[0].keys()}
-                group_features_list = {1: empty_dict(),
-                                       2: empty_dict(),
-                                       3: empty_dict(),
-                                       4: empty_dict(),
-                                       5: empty_dict(),
-                                       'all': empty_dict()}
-
-                count_votes = {x: 0 for x in range(1, 6)}
+                if stance_shrink:
+                    num_stances = 3
+                else:
+                    num_stances = 6
+                group_features_list = {x: empty_dict() for x in range(1, num_stances + 1)}
+                group_features_list.update({'all': empty_dict()})
+                count_votes = {x: 0 for x in range(1, num_stances+1)}
                 for example in examples:
                     stance = example[Features.STANCE_SCORE]
+                    stance_shrinked = stance_shrinking[example[Features.STANCE_SCORE]]
+                    label_votes[stance_shrinked] += 1
+                    if stance_shrinking:
+                        stance = stance_shrinked
                     count_votes[stance] += 1
                     for k, v in example.items():
-                        group_features_list[stance][k].append(v)
+                        if k == Features.STANCE_SCORE:
+                            group_features_list[stance][k].append(stance)
+                        else:
+                            group_features_list[stance][k].append(v)
                         group_features_list['all'][k].append(v)
-                sum_votes = sum(count_votes.values())
+#                sum_votes = sum(count_votes.values())
 
                 group_features[query] = {}
-                if include_dist_features:
-                    dist_features = {'sigma' + str(i): count_votes[i] / sum_votes for i in range(1, 6)}
-                    dist_features['sigmaz'] = (dist_features['sigma5'] - dist_features['sigma1']) / 5
-                    group_features[query].update(dist_features)
+#                if include_dist_features:
+#                    dist_features = {'sigma' + str(i): count_votes[i] / sum_votes for i in range(1, 6)}
+#                    dist_features['sigmaz'] = (dist_features['sigma5'] - dist_features['sigma1']) / 5
+#                    group_features[query].update(dist_features)
 
                 #stance features
                 sums = { x:0 for x in group_features_list[1].keys()}
-                for stance in range(1, 6):
+                for stance in range(1, num_stances+1):
                     group_features[query]['stance_' + str(stance) + '_votes'] =count_votes[stance]
                     for k, vals in group_features_list[stance].items():
                         mean_val = 0 if not vals else np.mean(vals)
@@ -1041,11 +1109,11 @@ class FeaturesGenerator:
                 citations_all_sum = 0
                 citations_all_acc = 0
                 if normalize:
-                    for stance in range(1, 6):
+                    for stance in range(1, num_stances+1):
                         for k, vals in group_features_list[stance].items():
                             normed_val = sys.maxsize if sums[k] == 0 else  group_features[query][k.value + str(stance) + '_mean'] / sums[k]
                             group_features[query][k.value + str(stance) + '_normed_mean'] = normed_val
-                for stance in range(1, 6):
+                for stance in range(1, num_stances+1):
                     stance_hIndex = group_features[query][Features.H_INDEX.value + str(stance) + '_mean']
                     stance_citations = group_features[query][Features.CITATION_COUNT.value + str(stance) + '_mean']
                     h_index_all_sum += stance_hIndex
@@ -1061,15 +1129,14 @@ class FeaturesGenerator:
                 group_features[query]['h_index_stance_avg'] = h_index_all_acc / h_index_all_sum
                 group_features[query][
                     'citations_stance_avg'] = 1 if citations_all_sum == 0 else citations_all_acc / citations_all_sum
+                if not fieldnames:
+                    fieldnames = ['query', 'label']
+                    fieldnames.extend(list(group_features[query].keys()))
+                    self.open_group_csv_file(output_dir, output_filename, fieldnames)
 
-        if label_shrink:
-            output_filename = 'group_features_by_stance_shrink.csv'
-        else:
-            if include_dist_features:
-                output_filename = 'dist_features_group_features_by_stance.csv'
-            else:
-                output_filename = 'group_features_by_stance.csv'
-        self.write_group_csv_file(output_dir, output_filename, group_features, labels)
+                self.write_output_row(output_dir, output_filename, query, group_features[query], label, fieldnames, label_votes)
+            #self.write_group_csv_file(output_dir, output_filename, group_features, labels)
+            print(null_qs)
 
 
     def setup_dir(self, output_dir, long_dir, short_dir, config):
@@ -1092,6 +1159,7 @@ class FeaturesGenerator:
             coch_pubmed_url = None
         review_year = date.split('/')[2].strip()
         q_dir = short_dir + row['long query'].strip()
+        q_dir = q_dir.replace('-', '‐')
         files = []
         if not os.path.isdir(q_dir):
             return [], -1, 0, 0
@@ -1380,26 +1448,39 @@ def w_and_h():
                                       perm=False)
     fg.gen_majority_vote(output_dir + 'w_h_shany\\reports\\', queries, '', output_dir, config)
 
+
+def read_outlayer_file(outlayers_file):
+    outlayers = []
+    with open(outlayers_file, encoding='utf-8', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            outlayers.append(row['query'])
+    return outlayers
+
+
+
 def w_and_h_fg():
-    paper_cache = PaperCache('../resources/fg_cache_wh.json')
-    hIndex = HIndex('../resources/scimagojr 2018.csv')
+    outtlayers = read_outlayer_file('C:\\research\\falseMedicalClaims\\White and Hassan\\model input\\mult_features_all\\outlayers.csv')
+    paper_cache = PaperCache('../../../resources/fg_cache_wh.json')
+    hIndex = HIndex('../../../resources/scimagojr 2018.csv')
     fetcher = PubMedFetcher(email='anat.hashavit@gmail.com')
-    paper_builder = PaperBuilder(hIndex, paper_cache, fetcher, '../resources/fg_noindex_wh.csv')
+    paper_builder = PaperBuilder(hIndex, paper_cache, fetcher, '../../../resources/fg_noindex_wh.csv')
     fg = FeaturesGenerator(paper_builder)
 
-    queries = 'C:\\research\\falseMedicalClaims\\White and Hassan\\truth_detailed_comma.csv'
+    queries = 'C:\\research\\falseMedicalClaims\\White and Hassan\\truth_unicode_converterd_no_summary.csv'
     #queries = 'C:\\research\\falseMedicalClaims\\White and Hassan\\queries.csv'
     output_dir = 'C:\\research\\falseMedicalClaims\\White and Hassan\\model input\\'
-    short_dir = 'C:\\research\\falseMedicalClaims\\White and Hassan\\merged_annotations\\'
+    short_dir = 'C:\\research\\falseMedicalClaims\\White and Hassan\\merged_annotations_all\\'
 
     config = FeaturesGenerationConfig(include_irrelevant=False, examples_per_file=20, review_start_range=15,
                                       review_end_range=1, group_size=3, cochrane_search_range=15, remove_stance=False,
                                       perm=False)
 
-    fg.generate_examples_by_group_and_stance(output_dir + 'mult_features\\', queries, '', short_dir, config,
-                                             include_dist_features=False, normalize=True, label_shrink = True)
+    #fg.generate_examples_by_group_and_stance(output_dir + 'mult_features_all\\', queries, '', short_dir, config,
+    #                                         include_dist_features=False, normalize=True, stance_shrink = False,outlayers=outtlayers)
     fg.gen_majority_vote(output_dir + 'mult_features\\', queries, '', short_dir, config)
 #    fg.gen_dist_features(output_dir + 'mult_features\\reports\\majority.csv', output_dir)
+
 
 
 def main():
